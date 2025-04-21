@@ -11,6 +11,7 @@ create table country (
 -- Table: quality
 create table quality (
     qol_id int auto_increment primary key,
+    qol_index decimal(10, 2) not null,  
     stability int not null,
     rights int not null,
     health int not null,
@@ -32,7 +33,6 @@ create table happiness (
     freedom float not null,
     generosity float not null,
     perceptions_of_corruption float not null,
-    dystopia float not null,
     country_id int not null,
     foreign key (country_id) references country (country_id)
 );

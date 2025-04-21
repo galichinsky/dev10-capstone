@@ -25,7 +25,7 @@ def life_etl_dag():
         cnx = hook.get_conn()
         engine = create_engine(hook.get_uri(), creator=lambda: cnx)
         qol_path = "/opt/airflow/dags/life/quality_of_life.csv"  # Update with the correct path
-        whr_path = "/opt/airflow/dags/life/world-happiness-2022.xls"
+        whr_path = "/opt/airflow/dags/life/DataForFigure2.1WHR2023.xls"
         processor = ETLProcessor(qol_path, whr_path, engine)
         processor.process()
         engine.dispose()
