@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from dynaconf import Dynaconf
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.WARN)
+log.setLevel(logging.ERROR)
 
 class ETLProcessor:
     def __init__(self, qol_path: str, whr_path: str, engine):
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     
     # Paths to the data files
     qol_path = os.path.join(os.path.dirname(__file__), "quality_of_life.csv")
-    whr_path = os.path.join(os.path.dirname(__file__), "DataForFigure2.1WHR2023.xls")
+    whr_path = os.path.join(os.path.dirname(__file__), "world-happiness-2022.xls")
     
     def build_engine():
         settings = Dynaconf(envvar_prefix="DB", load_dotenv=True)
