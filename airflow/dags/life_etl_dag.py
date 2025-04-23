@@ -26,7 +26,8 @@ def life_etl_dag():
         engine = create_engine(hook.get_uri(), creator=lambda: cnx)
         qol_path = "/opt/airflow/data/quality_of_life.csv"
         whr_path = "/opt/airflow/data/world-happiness-2022.xls"
-        processor = ETLProcessor(qol_path, whr_path, engine)
+        regions_path = "/opt/airflow/data/country_regions.csv"
+        processor = ETLProcessor(qol_path, whr_path, regions_path, engine)
         processor.process()
         engine.dispose()
     

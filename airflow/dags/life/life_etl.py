@@ -8,9 +8,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.ERROR)
 
 class ETLProcessor:
-    def __init__(self, qol_path: str, whr_path: str, engine):
+    def __init__(self, qol_path: str, whr_path: str, regions_path: str, engine):
         self.qol_path = qol_path
         self.whr_path = whr_path
+        self.regions_path = regions_path
         self.engine = engine
         
     def extract(self):
@@ -20,9 +21,13 @@ class ETLProcessor:
         
         df_whr = pd.read_excel(self.whr_path)
         log.info(f"Extracted World Happiness Report data: {df_whr.shape[0]} rows")
-        return df_qol, df_whr
+        
+        df_regions = pd.read_csv(self.regions_path)
+        log.info(f"Extracted country regions data: {df_regions.shape[0]} rows")
+        
+        return df_qol, df_whr, df_regions
     
-    def transform(self, df_qol, df_whr):
+    def transform(self, df_qol, df_whr, df_regions):
         log.info("Transforming data...")
         
         # transform Quality of Life data
@@ -67,9 +72,12 @@ class ETLProcessor:
         'country_name', 'happiness', 'log_gdp', 'social_support',
         'healthy_life_expectancy', 'freedom', 'generosity', 'perceptions_of_corruption'
         ]    
-        return df_qol, df_whr
+        
+        df_regions['country_name'] = df_regions['country_name'].astype(str)
+        
+        return df_qol, df_whr, df_regions
     
-    def load(self, df_qol, df_whr):
+    def load(self, df_qol, df_whr, df_regions):
         log.info("Loading data into the database...")
 
         # Combine country names from both datasets
@@ -78,6 +86,16 @@ class ETLProcessor:
         all_countries = pd.DataFrame(
             {'country_name': pd.unique(pd.concat([pd.Series(countries_qol), pd.Series(countries_whr)]))}
         )
+        
+        # Merge region data with combined counrty list
+        all_countries = pd.merge(all_countries, df_regions, on='country_name', how='left')
+        
+        # # Check for missing regions
+        # missing_regions = all_countries[all_countries['region'].isnull()]
+        # if not missing_regions.empty:
+        #     log.error(f"Missing regions for the following countries: {missing_regions['country_name'].tolist()}")
+        #     raise ValueError("Some countries are missing region data. Please update the 'country_regions.csv' file.")
+
 
         # Load countries into the 'country' table
         all_countries.to_sql('country', con=self.engine, if_exists='append', index=False)
@@ -108,9 +126,9 @@ class ETLProcessor:
         
     def process(self):
         log.info("Starting ETL process...")
-        df_qol, df_whr = self.extract()
-        df_qol, df_whr = self.transform(df_qol, df_whr)
-        self.load(df_qol, df_whr)
+        df_qol, df_whr, df_regions = self.extract()
+        df_qol, df_whr, df_regions = self.transform(df_qol, df_whr, df_regions)
+        self.load(df_qol, df_whr, df_regions)
         log.info("ETL process completed successfully.")
         
 if __name__ == "__main__":
@@ -118,6 +136,7 @@ if __name__ == "__main__":
     # Paths to the data files
     qol_path = os.path.join(os.path.dirname(__file__), "quality_of_life.csv")
     whr_path = os.path.join(os.path.dirname(__file__), "world-happiness-2022.xls")
+    regions_path = os.path.join(os.path.dirname(__file__), "country_regions.csv")
     
     def build_engine():
         settings = Dynaconf(envvar_prefix="DB", load_dotenv=True)
@@ -129,6 +148,7 @@ if __name__ == "__main__":
         processor = ETLProcessor(
             qol_path,
             whr_path,
+            regions_path,
             engine
         )
         processor.process()

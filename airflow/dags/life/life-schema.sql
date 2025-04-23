@@ -5,7 +5,8 @@ use life;
 -- Table: country
 create table country (
     country_id int auto_increment primary key,
-    country_name varchar(100) not null
+    country_name varchar(100) not null,
+    region varchar(100) not null
 );
 
 -- Table: quality
