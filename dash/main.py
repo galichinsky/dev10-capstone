@@ -3,7 +3,7 @@ from dash import Dash, dash_table, html, dcc, callback, Input, Output
 import plotly.express as px
 from sqlalchemy import create_engine
 from dynaconf import Dynaconf
-
+import statsmodels.api as sm
 
 def build_engine():
     settings = Dynaconf(envvar_prefix="DB", load_dotenv=True)
@@ -55,16 +55,17 @@ social_support_qol_corr = df_life[['social_support', 'qol_index']].corr().iloc[0
 
 app = Dash(__name__)
 
-def render_tab1():
-    
-    correlation_matrix = df_life[
+def render_all_data_tab():
+    filtered_df = df_life[
         [
             "qol_index", "stability", "rights", "health", "safety", "climate", 
             "costs", "popularity", "happiness", "log_gdp", "social_support", 
             "healthy_life_expectancy", "freedom", "generosity", 
             "perceptions_of_corruption"
         ]
-    ].corr()
+    ]
+    
+    correlation_matrix = filtered_df.corr()
 
     # Create a heatmap for the correlation matrix
     fig = px.imshow(
@@ -78,16 +79,25 @@ def render_tab1():
         [
             html.H3("Life Data Table", style={"textAlign": "center"}),
             dash_table.DataTable(
-                data=df_life.to_dict("records"),
-                page_size=10,
-                sort_action="native",
-                style_table={"margin": "20px auto", "width": "90%"},
+            data=filtered_df.to_dict("records"),
+            page_size=6,
+            sort_action="native",
+            style_table={
+                "width": "100%",
+                "margin": "auto",
+                },
+            style_cell={
+                "textAlign": "left",
+                "padding": "2px",
+                "maxWidth": "50px",
+                "whiteSpace": "normal",
+            },
             ),
-            html.H2("Correlation Matrix of Life Factors", style={"textAlign": "center", "marginTop": "0px"}),
-            dcc.Graph(figure=fig, style={"width": "100%", "height": "1100px", "margin": "20px auto"}),
+            html.H2("Correlation Matrix of Life Factors", style={"textAlign": "center", "marginBottom": "-10px"}),
+            dcc.Graph(figure=fig, style={"width": "100%", "height": "1100px", "margin": "10px auto"}),
         ],
         style={"width": "100%", "margin": "auto"},
-    ),
+        ),
     
 def render_regional_tab():
     # Get regional summary data
@@ -99,7 +109,7 @@ def render_regional_tab():
         x='region',
         y=['avg_qol_index'],
         barmode='group',
-        title='Average Quality of Life and Happiness Scores by Region',
+        title='Average Quality of Life Index by Region',
         labels={'value': 'Avg QOL Index', 'region': 'Region'},
     )
     fig1.update_layout(showlegend=False)
@@ -109,7 +119,7 @@ def render_regional_tab():
         x='region',
         y=['avg_happiness'],
         barmode='group',
-        title='Average Quality of Life and Happiness Scores by Region',
+        title='Average Happiness Score by Region',
         labels={'value': 'Avg Happiness Score', 'region': 'Region'},
         color_discrete_sequence=['red']
     )
@@ -117,13 +127,13 @@ def render_regional_tab():
 
     return html.Div(
         [
-            html.H3("Regional Trends in Quality of Life and Happiness", style={"textAlign": "center"}),
+            # html.H3("Regional Trends in Quality of Life and Happiness", style={"textAlign": "center", "margin": "10px"}),
             html.Div(
                 [
-                    dcc.Graph(figure=fig1, style={"width": "50%", "display": "inline-block", "margin-left": "5px"}),
-                    dcc.Graph(figure=fig2, style={"width": "50%", "display": "inline-block", "margin-right": "5px"}),
+                    dcc.Graph(figure=fig1, style={"width": "50%", "margin": "10px"}),
+                    dcc.Graph(figure=fig2, style={"width": "50%", "margin": "10px"}),
                 ], 
-                style={"display": "flex", "justify-content": "center"},
+                style={"display": "flex", "justify-content": "space-between", "margin-top": "60px"},
             ),
         ],
         style={"width": "100%", "margin": "auto"}
@@ -135,7 +145,7 @@ def render_gdp_qol_tab():
         df_life,
         x='log_gdp',
         y='qol_index',
-        title='Relationship Between GDP (log_gdp) and Quality of Life (qol_index)',
+        # title='Relationship Between GDP (log_gdp) and Quality of Life (qol_index)',
         labels={'log_gdp': 'Log GDP', 'qol_index': 'Quality of Life Index'},
         trendline='ols'
     )
@@ -146,7 +156,7 @@ def render_gdp_qol_tab():
     return html.Div(
         [
             html.H3("GDP vs Quality of Life", style={"textAlign": "center"}),
-            dcc.Graph(figure=fig, style={"margin": "20px auto", "width": "90%"}),
+            dcc.Graph(figure=fig, style={"margin": "auto", "width": "90%"}),
         ]
     ),
 
@@ -220,51 +230,184 @@ def render_social_support_tab():
         style={"width": "100%", "margin": "auto"}
     )
     
-            # html.Label("Select a Year"),
-            # dcc.Dropdown(
-            #     id="year-dropdown1",
-            #     options=[
-            #         {"label": year, "value": year}
-            #         for year in df_idb["year"].unique()
-            #     ],
-            #     value=df_idb["year"].max(),  # Default value
-            # ),
-            # dcc.Graph(id="choropleth-map"),
-            # dcc.Graph(id="geo-map"),
-            # dcc.Slider(
-            #     id="year-slider",
-            #     min=df_idb["year"].min(),
-            #     max=df_idb["year"].max(),
-            #     value=df_idb["year"].max(),
-            #     marks={
-            #         year: str(year)
-            #         for year in range(df_idb["year"].min(), df_idb["year"].max() + 1, 5)
-            #     },
-            #     step=None,
-            # ),
-    # style={"width": "auto", "margin": "auto"}
+# Define predictors and target
+X = df_life[["stability", "rights", "health", "safety", 
+            "log_gdp", "social_support", 
+            "healthy_life_expectancy", "freedom",]]
+y_happiness = df_life["happiness"]
+y_qol = df_life["qol_index"]
+
+# Add a constant for the regression model
+X = sm.add_constant(X)
+
+# Fit regression models
+model_happiness = sm.OLS(y_happiness, X).fit()
+model_qol = sm.OLS(y_qol, X).fit()
+
+# Predicted values
+df_life["predicted_happiness"] = model_happiness.predict(X)
+df_life["predicted_qol"] = model_qol.predict(X)
+
+# Calculate residuals
+df_life["happiness_residual"] = df_life["happiness"] - df_life["predicted_happiness"]
+df_life["qol_residual"] = df_life["qol_index"] - df_life["predicted_qol"]
+
+# Define thresholds for outliers (e.g., residuals > 2 standard deviations)
+thresh = 2.5
+happiness_threshold = thresh * df_life["happiness_residual"].std()
+qol_threshold = thresh * df_life["qol_residual"].std()
+
+# Identify outliers
+happiness_outliers = df_life[
+    (df_life["happiness_residual"].abs() > happiness_threshold)
+]
+qol_outliers = df_life[
+    (df_life["qol_residual"].abs() > qol_threshold)
+]
+
+# Scatter plot for happiness
+fig_happiness = px.scatter(
+    df_life,
+    x="predicted_happiness",
+    y="happiness",
+    color=df_life["happiness_residual"].abs() > happiness_threshold,
+    title="Happiness: Actual vs Predicted",
+    labels={"x": "Predicted Happiness", "y": "Actual Happiness"},
+)
+fig_happiness.add_shape(
+    type="line",
+    x0=df_life["predicted_happiness"].min(),
+    y0=df_life["predicted_happiness"].min(),
+    x1=df_life["predicted_happiness"].max(),
+    y1=df_life["predicted_happiness"].max(),
+    line=dict(color="Red", dash="dash"),
+)
+fig_happiness.update_layout(showlegend=False)
+
+# Scatter plot for quality of life
+fig_qol = px.scatter(
+    df_life,
+    x="predicted_qol",
+    y="qol_index",
+    color=df_life["qol_residual"].abs() > qol_threshold,
+    title="Quality of Life: Actual vs Predicted",
+    labels={"x": "Predicted QOL", "y": "Actual QOL"},
+)
+fig_qol.add_shape(
+    type="line",
+    x0=df_life["predicted_qol"].min(),
+    y0=df_life["predicted_qol"].min(),
+    x1=df_life["predicted_qol"].max(),
+    y1=df_life["predicted_qol"].max(),
+    line=dict(color="Red", dash="dash"),
+)
+fig_qol.update_layout(showlegend=False)
+
+def render_outliers_tab():
+    return html.Div(
+        [
+            html.H3("Outliers in Happiness and Quality of Life", style={"textAlign": "center"}),
+            html.Div(
+                [
+                    html.H4("Happiness Outliers"),
+                    dash_table.DataTable(
+                        data=happiness_outliers.to_dict("records"),
+                        page_size=5,
+                        style_table={
+                            "width": "100%",
+                            "margin": "auto",
+                        },
+                        style_cell={
+                            "textAlign": "left",
+                            "padding": "2px",
+                            "maxWidth": "50px",
+                            "whiteSpace": "normal",
+                        },
+                    ),
+                ]
+            ),
+            html.Div(
+                [
+                    html.H4("Quality of Life Outliers"),
+                    dash_table.DataTable(
+                        data=qol_outliers.to_dict("records"),
+                        page_size=5,
+                        style_table={
+                            "width": "100%",
+                            "margin": "auto",
+                        },
+                        style_cell={
+                            "textAlign": "left",
+                            "padding": "2px",
+                            "maxWidth": "50px",
+                            "whiteSpace": "normal",
+                        },
+                    ),
+                ]
+            ),
+            html.Div(
+                [
+                    dcc.Graph(figure=fig_happiness, style={"width": "48%", "display": "inline-block", "margin": "10px"}),
+                    dcc.Graph(figure=fig_qol, style={"width": "48%", "display": "inline-block", "margin": "10px"}),
+                ],
+                style={"display": "flex", "justify-content": "center"},
+            ),
+        ]
+    )
     
 app.layout = html.Div(
     [
-        html.H2("Quality of Life and Happiness by Country", style={"textAlign": "center"}),
-        dcc.Tabs(
+        html.H2("Quality of Life and Happiness by Country", style={"textAlign": "center", "margin-left": "370px", "margin-top": "50px"}),
+        html.Div(
             [
-                dcc.Tab(render_tab1(), label="Data and Correlations"),
-                dcc.Tab(render_regional_tab(), label="Regional Trends"),
-                dcc.Tab(render_gdp_qol_tab(), label="GDP vs Quality of Life"),
-                dcc.Tab(render_climate_tab(), label="Climate vs Quality of Life and Happiness"),
-                dcc.Tab(render_social_support_tab(), label="Social Support vs Happiness and Quality of Life"),
-                # dcc.Tab(render_tab2(), label="Country Data"),
-                # dcc.Tab(render_tab3(), label="Multi-Country Comparisons"),
-            ]
+                html.Div(
+                    dcc.Tabs(
+                        id="tabs",
+                        value="tab1",
+                        children=
+                        [
+                            dcc.Tab(label="Data and Correlations", value="tab1"),
+                            dcc.Tab(label="Regional Trends", value="tab2"),
+                            dcc.Tab(label="GDP vs Quality of Life", value="tab3"),
+                            dcc.Tab(label="Climate vs Quality of Life and Happiness", value="tab4"),
+                            dcc.Tab(label="Social Support vs Happiness and Quality of Life", value="tab5"),
+                            dcc.Tab(label="Outliers in Happiness and QOL", value="tab6"),
+                        ],
+                        vertical=True,  # Make tabs vertical
+                        style={"height": "auto", "borderRight": "1px solid #ccc", "padding": "10px"},
+                    ),
+                    style={"flex": "0 0 auto", "display": "flex", "flexDirection": "column"},
+                ),
+                html.Div(
+                    id="tab-content",
+                    style={"flex": "1", "padding": "20px", "margin": "auto"},  # Content area styling
+                ),
+            ],
+            style={"display": "flex"},
         ),
-        # dcc.Interval(
-        #     id="interval-component",
-        #     interval=1000,
-        #     n_intervals=0,
-        # ),
     ]
+),
+style={"width": "100%", "margin": "auto", "display": "flex", "flexDirection": "column"},
+
+
+@app.callback(
+    Output("tab-content", "children"),
+    Input("tabs", "value"),
 )
+def update_tab_content(tab):
+    if tab == "tab1":
+        return render_all_data_tab()
+    elif tab == "tab2":
+        return render_regional_tab()
+    elif tab == "tab3":
+        return render_gdp_qol_tab()
+    elif tab == "tab4":
+        return render_climate_tab()
+    elif tab == "tab5":
+        return render_social_support_tab()
+    elif tab == "tab6":
+        return render_outliers_tab()
+    return html.Div("No content available")    
 
 def run_dash():
     app.run(debug=True)
