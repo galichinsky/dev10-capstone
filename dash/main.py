@@ -56,7 +56,7 @@ social_support_qol_corr = df_life[['social_support', 'qol_index']].corr().iloc[0
 app = Dash(__name__)
 
 def render_all_data_tab():
-    filtered_df = df_life[
+    correlation_df = df_life[
         [
             "qol_index", "stability", "rights", "health", "safety", "climate", 
             "costs", "popularity", "happiness", "log_gdp", "social_support", 
@@ -65,7 +65,14 @@ def render_all_data_tab():
         ]
     ]
     
-    correlation_matrix = filtered_df.corr()
+    df_life_table = df_life[[
+        "country_name", "region", "qol_index", "stability", "rights",
+        "health", "safety", "climate", "costs", "popularity", "happiness",
+        "log_gdp", "social_support", "healthy_life_expectancy", "freedom",
+        "generosity", "perceptions_of_corruption"
+    ]]
+    
+    correlation_matrix = correlation_df.corr()
 
     # Create a heatmap for the correlation matrix
     fig = px.imshow(
@@ -79,7 +86,7 @@ def render_all_data_tab():
         [
             html.H3("Life Data Table", style={"textAlign": "center"}),
             dash_table.DataTable(
-            data=filtered_df.to_dict("records"),
+            data=df_life_table.to_dict("records"),
             page_size=6,
             sort_action="native",
             style_table={
@@ -231,9 +238,9 @@ def render_social_support_tab():
     )
     
 # Define predictors and target
-X = df_life[["stability", "rights", "health", "safety", 
+X = df_life[["stability", "rights", "health", "safety", "costs", 
             "log_gdp", "social_support", 
-            "healthy_life_expectancy", "freedom",]]
+            "healthy_life_expectancy", "freedom", "perceptions_of_corruption"]]
 y_happiness = df_life["happiness"]
 y_qol = df_life["qol_index"]
 
@@ -248,11 +255,19 @@ model_qol = sm.OLS(y_qol, X).fit()
 df_life["predicted_happiness"] = model_happiness.predict(X)
 df_life["predicted_qol"] = model_qol.predict(X)
 
+# Calculate R² values for the models
+r2_happiness = model_happiness.rsquared
+r2_qol = model_qol.rsquared
+
+# Print the R² values
+print(f"R² for Happiness Model: {r2_happiness:.2f}")
+print(f"R² for Quality of Life Model: {r2_qol:.2f}")
+
 # Calculate residuals
 df_life["happiness_residual"] = df_life["happiness"] - df_life["predicted_happiness"]
 df_life["qol_residual"] = df_life["qol_index"] - df_life["predicted_qol"]
 
-# Define thresholds for outliers (e.g., residuals > 2 standard deviations)
+# Define thresholds for outliers (e.g., residuals > {thresh} standard deviations)
 thresh = 2.5
 happiness_threshold = thresh * df_life["happiness_residual"].std()
 qol_threshold = thresh * df_life["qol_residual"].std()
@@ -353,8 +368,48 @@ def render_outliers_tab():
                 style={"display": "flex", "justify-content": "center"},
             ),
         ]
-    )
+    ),
     
+# QOL and happiness correlation
+qol_happiness_corr = df_life[['qol_index', 'happiness']].corr().iloc[0, 1]
+print(f"Correlation between Quality of Life and Happiness: {qol_happiness_corr:.2f}")
+
+# Define predictors and target
+X_qol = sm.add_constant(df_life["qol_index"])  # Add constant for intercept
+y_happiness = df_life["happiness"]
+
+# Fit the regression model
+model_qol_happiness = sm.OLS(y_happiness, X_qol).fit()
+
+# Get the R² value
+r2_qol_happiness = model_qol_happiness.rsquared
+print(f"R² value for Quality of Life vs Happiness: {r2_qol_happiness:.2f}")
+
+# Create scatter plot with trendline
+fig_qol_happiness = px.scatter(
+    df_life,
+    x="qol_index",
+    y="happiness",
+    title="Relationship Between Quality of Life and Happiness",
+    labels={"qol_index": "Quality of Life Index", "happiness": "Happiness Score"},
+    trendline="ols",  # Add regression trendline
+    trendline_color_override="red",  # Make the trendline red for visibility
+)
+
+# Update layout for better visualization
+fig_qol_happiness.update_layout(
+    xaxis_title="Quality of Life Index",
+    yaxis_title="Happiness Score",
+    margin={"t": 50, "b": 50, "l": 50, "r": 50},
+)
+
+def render_qol_happiness_tab():
+    return html.Div(
+        [
+            dcc.Graph(figure=fig_qol_happiness, style={"width": "90%", "margin": "auto"}),
+        ]
+    )
+
 app.layout = html.Div(
     [
         html.H2("Quality of Life and Happiness by Country", style={"textAlign": "center", "margin-left": "370px", "margin-top": "50px"}),
@@ -372,6 +427,7 @@ app.layout = html.Div(
                             dcc.Tab(label="Climate vs Quality of Life and Happiness", value="tab4"),
                             dcc.Tab(label="Social Support vs Happiness and Quality of Life", value="tab5"),
                             dcc.Tab(label="Outliers in Happiness and QOL", value="tab6"),
+                            dcc.Tab(label="QOL vs Happiness", value="tab7"),
                         ],
                         vertical=True,  # Make tabs vertical
                         style={"height": "auto", "borderRight": "1px solid #ccc", "padding": "10px"},
@@ -390,7 +446,7 @@ app.layout = html.Div(
 style={"width": "100%", "margin": "auto", "display": "flex", "flexDirection": "column"},
 
 
-@app.callback(
+@callback(
     Output("tab-content", "children"),
     Input("tabs", "value"),
 )
@@ -407,6 +463,8 @@ def update_tab_content(tab):
         return render_social_support_tab()
     elif tab == "tab6":
         return render_outliers_tab()
+    elif tab == "tab7":
+        return render_qol_happiness_tab()
     return html.Div("No content available")    
 
 def run_dash():
