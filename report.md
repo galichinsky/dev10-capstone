@@ -54,14 +54,12 @@
     - Used for exploratory data analysis and visualization.
 - **MySQL**:
     - Used for storing and managing the datasets.
-- **Dash**:
-    - Interactive web application for visualizing trends and insights.
 - **Plotly**:
-    - Used for creating scatter plots, histograms, and trendline visualizations.
+    - Used for creating scatter plots, bar graphs, and trendline visualizations.
 
 ---
 
-## Machine Learning (Optional)
+## Machine Learning
 - **OLS Regression**:
   - Used to predict happiness and quality of life scores based on key metrics.
   - R² values:

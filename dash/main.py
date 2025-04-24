@@ -84,7 +84,7 @@ def render_all_data_tab():
     
     return html.Div(
         [
-            html.H3("Life Data Table", style={"textAlign": "center"}),
+            # html.H3("Life Data Table", style={"textAlign": "center"}),
             dash_table.DataTable(
             data=df_life_table.to_dict("records"),
             page_size=6,
@@ -100,7 +100,7 @@ def render_all_data_tab():
                 "whiteSpace": "normal",
             },
             ),
-            html.H2("Correlation Matrix of Life Factors", style={"textAlign": "center", "marginBottom": "-10px"}),
+            html.H3("Correlation Matrix of Life Factors", style={"textAlign": "center", "marginBottom": "-10px"}),
             dcc.Graph(figure=fig, style={"width": "100%", "height": "1100px", "margin": "10px auto"}),
         ],
         style={"width": "100%", "margin": "auto"},
@@ -162,7 +162,7 @@ def render_gdp_qol_tab():
 
     return html.Div(
         [
-            html.H3("GDP vs Quality of Life", style={"textAlign": "center"}),
+            html.H3("GDP vs Quality of Life", style={"textAlign": "center", "margin-top": "30px"}),
             dcc.Graph(figure=fig, style={"margin": "auto", "width": "90%"}),
         ]
     ),
@@ -412,7 +412,7 @@ def render_qol_happiness_tab():
 
 app.layout = html.Div(
     [
-        html.H2("Quality of Life and Happiness by Country", style={"textAlign": "center", "margin-left": "370px", "margin-top": "50px"}),
+        html.H2("Quality of Life and Happiness", style={"textAlign": "center", "margin-left": "370px", "margin-top": "50px"}),
         html.Div(
             [
                 html.Div(

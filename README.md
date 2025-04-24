@@ -28,12 +28,18 @@ This project explores the relationship between quality of life and happiness acr
 
 ## Technologies Used
 - **Python**:
-  - Libraries: `pandas`, `numpy`, `plotly`, `dash`, `statsmodels`.
+    - Libraries: `pandas`, `numpy`, `plotly`, `dash`, `statsmodels`, `dynaconf`, `sqlalchemy`.
 - **SQL**:
-  - Used for querying and extracting data from relational databases.
-- **Dash**:
-  - Interactive web application for data visualization.
+    - Used for querying and extracting data from relational databases.
+- **Docker**:
+    - Containerized the application for easy deployment and scalability.
+- **Airflow**:
+    - Used for scheduling and automating the ETL process.
+- **Jupyter Notebook**:
+    - Used for exploratory data analysis and visualization.
+- **MySQL**:
+    - Used for storing and managing the datasets.
 - **Plotly**:
-  - High-quality visualizations for trends and insights.
+    - Used for creating scatter plots, bar charts, and trendline visualizations.
 
 ---

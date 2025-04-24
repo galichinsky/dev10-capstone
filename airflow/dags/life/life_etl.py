@@ -89,14 +89,7 @@ class ETLProcessor:
         
         # Merge region data with combined counrty list
         all_countries = pd.merge(all_countries, df_regions, on='country_name', how='left')
-        
-        # # Check for missing regions
-        # missing_regions = all_countries[all_countries['region'].isnull()]
-        # if not missing_regions.empty:
-        #     log.error(f"Missing regions for the following countries: {missing_regions['country_name'].tolist()}")
-        #     raise ValueError("Some countries are missing region data. Please update the 'country_regions.csv' file.")
-
-
+     
         # Load countries into the 'country' table
         all_countries.to_sql('country', con=self.engine, if_exists='append', index=False)
         log.info(f"Loaded {len(all_countries)} countries into the 'country' table.")
