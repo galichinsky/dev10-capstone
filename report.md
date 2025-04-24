@@ -125,7 +125,7 @@
     - Australia's actual QOL score is much higher than predicted by the OLS model, which means there are factors contributing to its high QOL that are not fully captured by the predictors in the model.
     - Both Sri Lanka and Lebanon have actual happiness scores that are lower than predicted by the OLS model, indicating that there are factors contributing to their lower happiness that are not fully captured by the predictors in the model.
 
-8. How strong of a relationship do qualifty of life and happiness have?
+8. How strong of a relationship do quality of life and happiness have?
     - Strong Positive Relationship: A correlation of 0.77 indicates that countries with higher quality of life tend to have higher happiness scores.
     - R² Value: The R² value of 0.59 shows that quality of life explains a significant portion of the variance in happiness, but other factors also play a role.
 
